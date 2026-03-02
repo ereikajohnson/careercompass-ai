@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Resume Analyzer - {{ job.title }}{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-10 offset-md-1">
+        <div class="card shadow-sm border-0 bg-body-tertiary rounded-4 mb-4">
+            <div class="card-body p-4 d-flex align-items-center justify-content-between flex-wrap">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle text-primary">
+                        <i class="bi bi-person-badge fs-2"></i>
+                    </div>
+                    <div>
+                        <h5 class="fw-bold mb-0">{{ current_user.full_name or current_user.username }}</h5>
+                        <p class="text-muted small mb-0"><i class="bi bi-mortarboard me-1"></i>{{
+                            current_user.qualification or 'Qualification not set' }}</p>
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    {% if current_user.tech_skills %}
+                    {% for skill in current_user.tech_skills.split(',')[:3] %}
+                    <span
+                        class="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle px-3 py-2 rounded-pill small">{{
+                        skill.strip() }}</span>
+                    {% endfor %}
+                    {% if current_user.tech_skills.split(',')|length > 3 %}
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill small">+{{
+                        current_user.tech_skills.split(',')|length - 3 }} more</span>
+                    {% endif %}
+                    {% endif %}
+                </div>
+                <a href="{{ url_for('main.profile') }}" class="btn btn-sm btn-outline-primary px-4 rounded-pill">Edit
+                    Profile</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-10 offset-md-1 text-center">
+        <h2 class="fw-bold text-primary mb-3">AI Resume Analyzer</h2>
+        <div class="card shadow-sm mb-4 border-0 bg-primary bg-opacity-10 py-3 rounded-4">
+            <div class="card-body py-2">
+                <h4 class="fw-bold mb-1">{{ job.title }}</h4>
+                {% if job.company %}
+                <p class="text-primary fw-bold mb-2 h6"><i class="bi bi-building me-1"></i>{{ job.company }}</p>
+                {% endif %}
+                <div class="d-flex justify-content-center flex-wrap gap-3 mt-2">
+                    {% if job.availability %}
+                    <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                        <i class="bi bi-clock-history me-1 text-primary"></i>{{ job.availability }}
+                    </span>
+                    {% endif %}
+                    {% if job.salary_package %}
+                    <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                        <i class="bi bi-cash-stack me-1 text-success"></i>{{ job.salary_package }}
+                    </span>
+                    {% endif %}
+                    <span class="badge bg-white text-dark shadow-sm px-3 py-2">
+                        <i class="bi bi-mortarboard me-1 text-info"></i>{{ job.min_qualification }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted fs-5">
+            Upload your resume to see how well you match this role at <strong>{{ job.company or 'the target company'
+                }}</strong>.
+        </p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-body p-4 text-center">
+                <i class="bi bi-cloud-arrow-up text-primary display-4 mb-3 d-block"></i>
+                <h5 class="fw-bold mb-3">Upload your Resume (PDF)</h5>
+                <form action="{{ url_for('main.resume_analyzer', job_id=job.id) }}" method="POST"
+                    enctype="multipart/form-data" class="d-inline-block w-75">
+                    <div class="input-group mb-3">
+                        <input type="file" class="form-control" name="resume" accept="application/pdf" required>
+                        <button class="btn btn-primary px-4" type="submit"><i class="bi bi-magic me-1"></i>
+                            Analyze</button>
+                    </div>
+                    <small class="text-muted">Only PDF files are supported. Your file is not stored permanently.</small>
+                </form>
+            </div>
+        </div>
+
+
+        {% if analysis_result %}
+        <div class="card shadow-sm border-0 border-start border-4 mb-4
+            {% if analysis_result.match_percentage >= 80 %}border-success
+            {% elif analysis_result.match_percentage >= 50 %}border-warning
+            {% else %}border-danger{% endif %}">
+            <div class="card-body p-4">
+                <h4 class="fw-bold mb-4 text-center">Analysis Results</h4>
+
+                <!-- Match Progress Bar -->
+                <div class="mb-4 text-center">
+                    <h1 class="display-3 fw-bold 
+                        {% if analysis_result.match_percentage > 75 %}text-success
+                        {% elif analysis_result.match_percentage > 40 %}text-warning
+                        {% else %}text-danger{% endif %} mb-0">
+                        {{ analysis_result.match_percentage }}%
+                    </h1>
+                    <p class="text-muted text-uppercase fw-bold mb-2">Match Score</p>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar 
+                            {% if analysis_result.match_percentage > 75 %}bg-success
+                            {% elif analysis_result.match_percentage > 40 %}bg-warning
+                            {% else %}bg-danger{% endif %}" role="progressbar"
+                            style="width: {{ analysis_result.match_percentage }}%;"
+                            aria-valuenow="{{ analysis_result.match_percentage }}" aria-valuemin="0"
+                            aria-valuemax="100"></div>
+                    </div>
+                </div>
+
+                <div class="alert 
+                    {% if analysis_result.match_percentage > 75 %}alert-success
+                    {% elif analysis_result.match_percentage > 40 %}alert-warning
+                    {% else %}alert-danger{% endif %} py-3 mb-4">
+                    <i class="bi bi-info-circle-fill me-2"></i><strong>Recommendation:</strong> {{
+                    analysis_result.suggestions }}
+                </div>
+
+                <div class="row mt-4">
+                    <!-- Strengths (Technical) -->
+                    <div class="col-md-4 mb-4 mb-md-0">
+                        <h6 class="fw-bold text-muted text-uppercase mb-3">
+                            <i class="bi bi-check-circle text-success me-2"></i>Matched Tech Skills
+                        </h6>
+                        {% if analysis_result.strengths %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for skill in analysis_result.strengths %}
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-3 py-2">
+                                <i class="bi bi-check2 me-1"></i>{{ skill }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted small">No exact tech skill matches found.</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Missing Skills -->
+                    <div class="col-md-4 mb-4 mb-md-0">
+                        <h6 class="fw-bold text-muted text-uppercase mb-3">
+                            <i class="bi bi-exclamation-triangle text-warning me-2"></i>Missing Skills (Gap)
+                        </h6>
+                        {% if analysis_result.missing %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for skill in analysis_result.missing %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-3 py-2">
+                                <i class="bi bi-x me-1"></i>{{ skill }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="alert alert-success py-2 mb-0">
+                            <i class="bi bi-check2-all me-1"></i> No missing skills!
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Soft Skills -->
+                    <div class="col-md-4">
+                        <h6 class="fw-bold text-muted text-uppercase mb-3">
+                            <i class="bi bi-person-check text-info me-2"></i>Soft Skills (Detected)
+                        </h6>
+                        {% if analysis_result.soft_skills %}
+                        <div class="d-flex flex-wrap gap-2">
+                            {% for skill in analysis_result.soft_skills %}
+                            <span class="badge bg-info-subtle text-info border border-info-subtle px-3 py-2">
+                                <i class="bi bi-patch-check me-1"></i>{{ skill }}
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <p class="text-muted small">No soft skill matches found in resume.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="text-center mt-5 mb-5">
+            <a href="{{ url_for('main.recommendations') }}" class="btn btn-outline-primary px-4 shadow-sm">
+                <i class="bi bi-arrow-left me-1"></i> Back to Recommendations
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
